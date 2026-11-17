@@ -37,3 +37,7 @@ STATUS.md
 .idea/
 .vscode/
 .DS_Store
+
+# Telegram secrets and cursor
+v2/.telegram.env
+v2/.telegram_alert_cursor.json
