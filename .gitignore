@@ -1,0 +1,39 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*credentials*
+*secret*
+*token*
+# Python runtime
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+# Runtime databases, WAL, logs and state
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.log
+*.log.*
+*.pid
+*.lock
+*.sock
+*.journal
+# Generated runtime checkpoints/status
+v2/V2_STATUS.md
+v2/v2_config.json
+v2/v1_archive_summary.json
+STATUS.md
+# Editors
+.idea/
+.vscode/
+.DS_Store

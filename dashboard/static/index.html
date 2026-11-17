@@ -1,0 +1,1585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#07080f" />
+  <title>Neural Strategy Lab // 72h Paper Ops</title>
+  <style>
+    :root {
+      --bg-0: #06070d;
+      --bg-1: #0b0e1a;
+      --bg-2: #11162a;
+      --card: rgba(15, 20, 38, 0.84);
+      --card-solid: #0f1426;
+      --border: rgba(139, 92, 246, 0.24);
+      --border-cyan: rgba(34, 211, 238, 0.28);
+      --text-0: #f1f5f9;
+      --text-1: #94a3b8;
+      --text-2: #64748b;
+      --violet: #a855f7;
+      --violet-soft: rgba(168, 85, 247, 0.16);
+      --cyan: #22d3ee;
+      --cyan-soft: rgba(34, 211, 238, 0.14);
+      --lime: #a3e635;
+      --lime-soft: rgba(163, 230, 53, 0.14);
+      --amber: #fbbf24;
+      --amber-soft: rgba(251, 191, 36, 0.15);
+      --rose: #fb7185;
+      --rose-soft: rgba(251, 113, 133, 0.16);
+      --radius: 14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--sans);
+      background:
+        radial-gradient(900px 520px at 8% -10%, rgba(168, 85, 247, 0.18), transparent 60%),
+        radial-gradient(760px 460px at 94% 4%, rgba(34, 211, 238, 0.14), transparent 55%),
+        radial-gradient(600px 420px at 50% 100%, rgba(163, 230, 53, 0.08), transparent 60%),
+        var(--bg-0);
+      color: var(--text-0);
+      min-height: 100vh;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(148, 163, 184, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148, 163, 184, 0.03) 1px, transparent 1px);
+      background-size: 36px 36px;
+      z-index: 0;
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 14px 14px 48px;
+    }
+
+    @media (min-width: 768px) {
+      .app { padding: 20px 24px 56px; }
+    }
+
+    /* Header */
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+      margin-bottom: 14px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--violet), var(--cyan));
+      display: grid;
+      place-items: center;
+      font-family: var(--mono);
+      font-weight: 800;
+      font-size: 14px;
+      color: #05070e;
+      box-shadow: 0 0 20px rgba(168, 85, 247, 0.45);
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #f8fafc, var(--cyan), var(--violet));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      color: var(--text-1);
+      font-family: var(--mono);
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    .pill-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .pill-dot.pulse {
+      animation: pulseGlow 1.8s infinite ease-in-out;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(0.82); }
+    }
+
+    .pill-cyan { color: var(--cyan); background: var(--cyan-soft); border-color: rgba(34, 211, 238, 0.35); }
+    .pill-violet { color: #d8b4fe; background: var(--violet-soft); border-color: rgba(168, 85, 247, 0.4); }
+    .pill-lime { color: var(--lime); background: var(--lime-soft); border-color: rgba(163, 230, 53, 0.35); }
+    .pill-amber { color: var(--amber); background: var(--amber-soft); border-color: rgba(251, 191, 36, 0.4); }
+    .pill-rose { color: var(--rose); background: var(--rose-soft); border-color: rgba(251, 113, 133, 0.45); }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    select, button {
+      font-family: var(--mono);
+      font-size: 11px;
+      background: var(--bg-2);
+      color: var(--text-0);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 10px;
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+    }
+
+    button:hover, select:hover {
+      border-color: var(--cyan);
+      box-shadow: 0 0 12px rgba(34, 211, 238, 0.2);
+    }
+
+    button:active { transform: translateY(1px); }
+
+    /* Warning Banner */
+    .alert-banner {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      margin-bottom: 14px;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid rgba(251, 113, 133, 0.5);
+      background: linear-gradient(90deg, rgba(251, 113, 133, 0.18), rgba(251, 191, 36, 0.1));
+      color: #fecdd3;
+    }
+
+    .alert-banner.visible { display: flex; }
+    .alert-banner.stale {
+      border-color: rgba(251, 191, 36, 0.5);
+      background: linear-gradient(90deg, rgba(251, 191, 36, 0.16), rgba(168, 85, 247, 0.08));
+      color: #fde68a;
+    }
+
+    /* Hero Countdown + Neural Status */
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    @media (min-width: 900px) {
+      .hero-grid { grid-template-columns: 1.55fr 1fr; }
+    }
+
+    .card {
+      position: relative;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 15px 16px;
+      backdrop-filter: blur(10px);
+      overflow: hidden;
+      transition: border-color 0.25s, transform 0.25s;
+    }
+
+    .card:hover { border-color: rgba(34, 211, 238, 0.42); }
+
+    .card-accent-top::after {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--violet), var(--cyan), var(--lime));
+      opacity: 0.85;
+    }
+
+    .countdown-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .section-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-1);
+      margin-bottom: 6px;
+    }
+
+    .countdown-clock {
+      font-family: var(--mono);
+      font-size: clamp(26px, 5vw, 38px);
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      font-variant-numeric: tabular-nums;
+      background: linear-gradient(90deg, var(--cyan), #e2e8f0, var(--lime));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.12);
+      overflow: hidden;
+      margin: 10px 0 8px;
+      border: 1px solid rgba(148, 163, 184, 0.14);
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--violet), var(--cyan), var(--lime));
+      transition: width 0.6s ease;
+    }
+
+    .meta-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-1);
+    }
+
+    .meta-strip strong { color: var(--text-0); font-weight: 600; }
+
+    .neural-box {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background:
+        radial-gradient(circle at 90% 15%, rgba(251, 191, 36, 0.14), transparent 55%),
+        var(--card);
+      border-color: rgba(251, 191, 36, 0.36);
+    }
+
+    .neural-badge-big {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 10px;
+      background: var(--amber-soft);
+      border: 1px solid rgba(251, 191, 36, 0.55);
+      color: var(--amber);
+      font-family: var(--mono);
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: 0.08em;
+      width: fit-content;
+      margin: 4px 0 8px;
+      box-shadow: 0 0 22px rgba(251, 191, 36, 0.16);
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      margin-bottom: 14px;
+      scrollbar-width: none;
+    }
+
+    .tabs::-webkit-scrollbar { display: none; }
+
+    .tab-btn {
+      padding: 9px 14px;
+      border-radius: 10px;
+      background: rgba(15, 20, 38, 0.72);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      color: var(--text-1);
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .tab-btn.active {
+      color: #05070e;
+      background: linear-gradient(90deg, var(--cyan), var(--lime));
+      border-color: transparent;
+      box-shadow: 0 0 18px rgba(34, 211, 238, 0.35);
+    }
+
+    .tab-panel { display: none; animation: fadeIn 0.22s ease; }
+    .tab-panel.active { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* KPI Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    @media (min-width: 720px) {
+      .kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    }
+
+    .kpi-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 13px 14px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--cyan);
+    }
+
+    .kpi-value {
+      font-family: var(--mono);
+      font-size: clamp(16px, 2.5vw, 22px);
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      margin: 2px 0 4px;
+      color: var(--text-0);
+    }
+
+    .kpi-sub {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-1);
+    }
+
+    .c-lime { color: var(--lime) !important; }
+    .c-cyan { color: var(--cyan) !important; }
+    .c-violet { color: #d8b4fe !important; }
+    .c-rose { color: var(--rose) !important; }
+    .c-amber { color: var(--amber) !important; }
+    .c-muted { color: var(--text-2) !important; font-style: italic; }
+
+    /* Two-column layouts */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    @media (min-width: 860px) {
+      .grid-2 { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* Chart */
+    .chart-wrap {
+      width: 100%;
+      min-height: 220px;
+      position: relative;
+    }
+
+    .chart-svg {
+      width: 100%;
+      height: 230px;
+      display: block;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-1);
+      margin-top: 6px;
+    }
+
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .swatch { width: 10px; height: 3px; border-radius: 2px; display: inline-block; }
+
+    /* Key-value stat list */
+    .kv-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 12px;
+      margin-top: 8px;
+    }
+
+    .kv-item {
+      background: rgba(11, 14, 26, 0.72);
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      border-radius: 10px;
+      padding: 8px 10px;
+    }
+
+    .kv-k { font-family: var(--mono); font-size: 10px; color: var(--text-2); text-transform: uppercase; }
+    .kv-v { font-family: var(--mono); font-size: 13px; font-weight: 700; margin-top: 2px; word-break: break-word; }
+
+    /* Tables & mobile cards */
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      background: rgba(7, 9, 18, 0.6);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      text-align: left;
+    }
+
+    th {
+      padding: 10px 10px;
+      color: var(--text-1);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      background: rgba(17, 22, 42, 0.9);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 10px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(34, 211, 238, 0.04); }
+
+    .empty-state {
+      padding: 20px 14px;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-2);
+      background: rgba(11, 14, 26, 0.5);
+      border: 1px dashed rgba(148, 163, 184, 0.2);
+      border-radius: 10px;
+    }
+
+    /* Logs */
+    .log-box {
+      background: #05070e;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 10px;
+      padding: 12px;
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.55;
+      max-height: 320px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #cbd5e1;
+    }
+
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 7px 0;
+      font-family: var(--mono);
+      font-size: 11.5px;
+    }
+
+    .bar-label { width: 92px; color: var(--text-1); text-transform: uppercase; }
+    .bar-track { flex: 1; height: 9px; background: rgba(148, 163, 184, 0.12); border-radius: 999px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--violet), var(--cyan)); }
+
+    /* Auth modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: rgba(5, 7, 14, 0.88);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-backdrop.open { display: flex; }
+
+    .modal {
+      width: 100%;
+      max-width: 400px;
+      background: var(--bg-1);
+      border: 1px solid var(--border-cyan);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
+    }
+
+    .modal input {
+      width: 100%;
+      margin: 12px 0;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-0);
+      color: var(--text-0);
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .code-snippet {
+      background: #05070e;
+      border: 1px solid rgba(34, 211, 238, 0.25);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--cyan);
+      overflow-x: auto;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">NSL</div>
+        <div>
+          <div class="brand-title">Neural Strategy Lab // 72h Paper Ops</div>
+          <div class="brand-sub" id="subtitle-line">Standalone Isolated Paper Lab &bull; Read-Only Telemetry</div>
+        </div>
+      </div>
+
+      <div class="pill-row">
+        <span class="pill pill-cyan"><span class="pill-dot"></span>PAPER ONLY</span>
+        <span class="pill pill-violet" id="pill-version">V1</span>
+        <span class="pill pill-amber" id="pill-neural"><span class="pill-dot"></span>NEURAL: UNTRAINED</span>
+        <span class="pill pill-lime" id="pill-health"><span class="pill-dot pulse"></span>LOADING...</span>
+        <span class="pill pill-violet" id="pill-hb-age">HB: --</span>
+      </div>
+
+      <div class="controls">
+        <select id="poll-interval" aria-label="Auto refresh interval">
+          <option value="10000">Poll 10s</option>
+          <option value="15000" selected>Poll 15s</option>
+          <option value="30000">Poll 30s</option>
+          <option value="0">Paused</option>
+        </select>
+        <button id="btn-refresh" type="button">Refresh Now</button>
+      </div>
+    </header>
+
+    <div class="alert-banner" id="alert-banner" role="alert">
+      <span id="alert-text">Warning</span>
+      <span id="alert-meta"></span>
+    </div>
+
+    <section class="hero-grid">
+      <div class="card card-accent-top">
+        <div class="countdown-row">
+          <div>
+            <div class="section-label">Remaining Time To Scheduled 72h End</div>
+            <div class="countdown-clock" id="countdown-clock">--:--:--</div>
+          </div>
+          <div style="text-align:right">
+            <div class="section-label">Elapsed Progress</div>
+            <div class="kpi-value c-cyan" id="progress-pct" style="font-size:20px">--%</div>
+          </div>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+        <div class="meta-strip">
+          <span>Start UTC: <strong id="meta-start">--</strong></span>
+          <span>Scheduled End UTC: <strong id="meta-end">--</strong></span>
+          <span>Last Refresh: <strong id="meta-refresh">--</strong></span>
+        </div>
+      </div>
+
+      <div class="card neural-box">
+        <div>
+          <div class="section-label">Model &amp; Execution Policy</div>
+          <div class="neural-badge-big" id="neural-big">NEURAL STATUS: UNTRAINED</div>
+          <div style="font-size:12px; color:var(--text-1);" id="neural-detail">
+            Deterministic rule-based baseline active in forward paper validation. No live keys or real orders.
+          </div>
+        </div>
+        <div class="meta-strip" style="margin-top:10px;">
+          <span>Runner PID: <strong id="meta-pid">--</strong></span>
+          <span>Events: <strong id="meta-events">--</strong></span>
+          <span>Blockers: <strong id="meta-blockers">--</strong></span>
+        </div>
+      </div>
+    </section>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab-btn active" data-tab="overview" type="button">Overview</button>
+      <button class="tab-btn" data-tab="positions" type="button">Positions &amp; Trades</button>
+      <button class="tab-btn" data-tab="universe" type="button">Universe &amp; Rejections</button>
+      <button class="tab-btn" data-tab="logs" type="button">Logs &amp; AGY</button>
+      <button class="tab-btn" data-tab="journal" type="button">Journal &amp; Security</button>
+      <button class="tab-btn" data-tab="v1archive" id="tab-btn-v1archive" type="button" style="display:none;">Archived V1</button>
+    </nav>
+
+    <!-- OVERVIEW TAB -->
+    <section class="tab-panel active" id="tab-overview">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="section-label">Combined Paper Equity</div>
+          <div class="kpi-value" id="kpi-total-eq">--</div>
+          <div class="kpi-sub" id="kpi-total-delta">Start: 50.0000 USDT</div>
+        </div>
+        <div class="kpi-card">
+          <div class="section-label" id="lbl-spot-eq">SPOT Equity</div>
+          <div class="kpi-value c-cyan" id="kpi-spot-eq">--</div>
+          <div class="kpi-sub" id="kpi-spot-delta">Long-Only &bull; --</div>
+        </div>
+        <div class="kpi-card">
+          <div class="section-label" id="lbl-fut-eq">FUTURES Equity</div>
+          <div class="kpi-value c-violet" id="kpi-fut-eq">--</div>
+          <div class="kpi-sub" id="kpi-fut-delta">Isolated &le;2x &bull; --</div>
+        </div>
+        <div class="kpi-card">
+          <div class="section-label">Positions (Open / Closed)</div>
+          <div class="kpi-value c-lime" id="kpi-pos-counts">--</div>
+          <div class="kpi-sub" id="kpi-pos-split">SPOT -- &bull; FUT --</div>
+        </div>
+        <div class="kpi-card" id="card-v2-exposure" style="display:none;">
+          <div class="section-label">Global Gross Exposure (Cap 5000)</div>
+          <div class="kpi-value c-cyan" id="kpi-v2-exp">--</div>
+          <div class="kpi-sub" id="kpi-v2-slots">Slots: -- / 100</div>
+        </div>
+        <div class="kpi-card">
+          <div class="section-label">Combined Win / Loss</div>
+          <div class="kpi-value" id="kpi-winloss">--</div>
+          <div class="kpi-sub" id="kpi-winrate">Win rate: not yet available</div>
+        </div>
+        <div class="kpi-card">
+          <div class="section-label">Profit Factor</div>
+          <div class="kpi-value" id="kpi-pf">--</div>
+          <div class="kpi-sub">From closed trades only</div>
+        </div>
+        <div class="kpi-card">
+          <div class="section-label">Observed Max Drawdown</div>
+          <div class="kpi-value" id="kpi-dd">--</div>
+          <div class="kpi-sub" id="kpi-dd-cur">From recorded heartbeats</div>
+        </div>
+        <div class="kpi-card">
+          <div class="section-label">Recorded Exit Fees</div>
+          <div class="kpi-value" id="kpi-fees">--</div>
+          <div class="kpi-sub">Serialized on POSITION_CLOSED</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:14px;">
+        <div class="countdown-row" style="margin-bottom:8px;">
+          <div>
+            <div class="section-label">Equity Curve (Recorded Heartbeats)</div>
+            <div style="font-size:12px; color:var(--text-1);" id="chart-caption">Waiting for heartbeat series...</div>
+          </div>
+          <div class="pill-row">
+            <span class="pill pill-cyan" id="chart-points-pill">0 pts</span>
+          </div>
+        </div>
+        <div class="chart-wrap" id="equity-chart-wrap"></div>
+        <div class="legend" id="chart-legend">
+          <span><i class="swatch" style="background:var(--cyan);"></i>SPOT</span>
+          <span><i class="swatch" style="background:var(--violet);"></i>FUTURES</span>
+          <span><i class="swatch" style="background:var(--lime);"></i>COMBINED</span>
+        </div>
+      </div>
+
+      <div class="card" id="v2-progress-card" style="display:none; margin-bottom:14px;">
+        <div class="countdown-row" style="margin-bottom:8px;">
+          <div>
+            <div class="section-label">V2 100-Market &amp; 5000 USDT Capacity Progress</div>
+            <div style="font-size:12px; color:var(--text-1);" id="v2-capacity-caption">50 USDT target notional / trade &bull; No duplicate symbol across ledgers</div>
+          </div>
+          <span class="pill pill-cyan" id="v2-cycle-pill">Cycle 0</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="v2-exp-bar"></div></div>
+        <div class="meta-strip" id="v2-capacity-meta"></div>
+      </div>
+
+      <div class="grid-2" id="v2-attribution-grid" style="display:none; margin-bottom:14px;">
+        <div class="card">
+          <div class="section-label">Category Attribution</div>
+          <div id="v2-cat-attrib-container"></div>
+        </div>
+        <div class="card">
+          <div class="section-label">Strategy Attribution</div>
+          <div id="v2-strat-attrib-container"></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card" id="spot-ledger-card">
+          <div class="section-label" id="lbl-spot-card">SPOT Ledger // Independent (Long-Only)</div>
+          <div class="kv-list" id="kv-spot"></div>
+        </div>
+        <div class="card" id="fut-ledger-card">
+          <div class="section-label" id="lbl-fut-card">FUTURES Ledger // Independent (Isolated &le;2x)</div>
+          <div class="kv-list" id="kv-futures"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- POSITIONS & TRADES TAB -->
+    <section class="tab-panel" id="tab-positions">
+      <div class="card" style="margin-bottom:14px;">
+        <div class="countdown-row" style="margin-bottom:10px;">
+          <div>
+            <div class="section-label">Open Simulated Positions</div>
+            <div style="font-size:12px; color:var(--text-1);">Reconstructed from POSITION_OPENED minus POSITION_CLOSED events</div>
+          </div>
+          <span class="pill pill-lime" id="open-count-pill">0 OPEN</span>
+        </div>
+        <div id="open-positions-container"></div>
+      </div>
+
+      <div class="card">
+        <div class="countdown-row" style="margin-bottom:10px;">
+          <div>
+            <div class="section-label">Closed Trade History</div>
+            <div style="font-size:12px; color:var(--text-1);">Actual recorded POSITION_CLOSED fills, PnL, and fees</div>
+          </div>
+          <span class="pill pill-violet" id="closed-count-pill">0 CLOSED</span>
+        </div>
+        <div id="closed-trades-container"></div>
+      </div>
+    </section>
+
+    <!-- UNIVERSE & REJECTIONS TAB -->
+    <section class="tab-panel" id="tab-universe">
+      <div class="grid-2">
+        <div class="card">
+          <div class="section-label">Sampled Universe &amp; Persisted Categories</div>
+          <div class="kv-list" id="kv-universe" style="margin-bottom:12px;"></div>
+          <div style="font-size:11.5px; color:var(--text-1); margin-bottom:10px;" id="universe-note"></div>
+          <div class="section-label">Observed Event Categories</div>
+          <div id="category-bars"></div>
+        </div>
+        <div class="card">
+          <div class="section-label">Persisted Symbols From Recorded Events</div>
+          <div id="observed-symbols-container"></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="countdown-row" style="margin-bottom:8px;">
+            <div class="section-label">Order Rejections (ORDER_REJECTED)</div>
+            <span class="pill pill-amber" id="rej-count-pill">0</span>
+          </div>
+          <div id="rejections-container"></div>
+        </div>
+        <div class="card">
+          <div class="countdown-row" style="margin-bottom:8px;">
+            <div class="section-label">Stale Data Skips (STALE_DATA_SKIP)</div>
+            <span class="pill pill-rose" id="stale-count-pill">0</span>
+          </div>
+          <div id="stale-container"></div>
+        </div>
+      </div>
+      <div class="card" id="v2-universe-table-card" style="display:none; margin-top:14px;">
+        <div class="countdown-row" style="margin-bottom:8px;">
+          <div class="section-label">Persisted 100-Market Universe Snapshot</div>
+          <span class="pill pill-cyan" id="v2-univ-count-pill">0 symbols</span>
+        </div>
+        <div id="v2-universe-table-container"></div>
+      </div>
+    </section>
+
+    <!-- LOGS & AGY TAB -->
+    <section class="tab-panel" id="tab-logs">
+      <div class="grid-2">
+        <div class="card">
+          <div class="section-label">Process &amp; Health Diagnostics</div>
+          <div class="kv-list" id="kv-process"></div>
+          <div class="section-label" style="margin-top:14px;">Recent Errors / Warnings (lab.log)</div>
+          <div class="log-box" id="log-errors-box" style="max-height:170px;">No errors or warnings recorded.</div>
+        </div>
+        <div class="card">
+          <div class="section-label">STATUS.md Snapshot</div>
+          <div class="log-box" id="status-md-box" style="max-height:290px;">Loading...</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="countdown-row" style="margin-bottom:8px;">
+            <div class="section-label">Runner Log Tail (lab.log)</div>
+            <span class="pill pill-cyan" id="lab-log-meta">--</span>
+          </div>
+          <div class="log-box" id="lab-log-box">Loading...</div>
+        </div>
+        <div class="card">
+          <div class="countdown-row" style="margin-bottom:8px;">
+            <div class="section-label">Isolated AGY Project Activity (dashboard_agy.log)</div>
+            <span class="pill pill-violet" id="agy-log-meta">ISOLATED</span>
+          </div>
+          <div style="font-size:11.5px; color:var(--text-1); margin-bottom:8px;" id="agy-note"></div>
+          <div class="log-box" id="agy-log-box">not yet available</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- JOURNAL & SECURITY TAB -->
+    <section class="tab-panel" id="tab-journal">
+      <div class="grid-2">
+        <div class="card">
+          <div class="section-label">Security &amp; Read-Only Isolation Posture</div>
+          <div class="kv-list" id="kv-security"></div>
+        </div>
+        <div class="card">
+          <div class="section-label">Safe Remote Access via Android Termius (SSH Port-Forward)</div>
+          <div style="font-size:12px; color:var(--text-1);">
+            Dashboard binds to localhost only by default. In Termius, create an SSH Port Forwarding rule (Local) or run:
+          </div>
+          <div class="code-snippet" id="ssh-forward-cmd">ssh -N -L 8765:127.0.0.1:8765 root@&lt;YOUR_SERVER_IP&gt;</div>
+          <div style="font-size:11.5px; color:var(--text-1); margin-top:8px;">
+            Then open <strong style="color:var(--lime); font-family:var(--mono);">http://127.0.0.1:8765</strong> in your Android browser.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="countdown-row" style="margin-bottom:10px;">
+          <div class="section-label">SQLite Event Journal Explorer (Read-Only)</div>
+          <div class="controls">
+            <select id="filter-event-type">
+              <option value="ALL">All Types</option>
+              <option value="HEARTBEAT">HEARTBEAT</option>
+              <option value="POSITION_OPENED">POSITION_OPENED</option>
+              <option value="POSITION_CLOSED">POSITION_CLOSED</option>
+              <option value="ORDER_REJECTED">ORDER_REJECTED</option>
+              <option value="STALE_DATA_SKIP">STALE_DATA_SKIP</option>
+            </select>
+            <select id="filter-ledger">
+              <option value="ALL">All Ledgers</option>
+              <option value="SPOT">SPOT</option>
+              <option value="FUTURES">FUTURES</option>
+              <option value="SYSTEM">SYSTEM</option>
+            </select>
+          </div>
+        </div>
+        <div id="journal-events-container"></div>
+      </div>
+    </section>
+
+    <!-- ARCHIVED V1 TAB (SEPARATE FROM V2) -->
+    <section class="tab-panel" id="tab-v1archive">
+      <div class="card" style="margin-bottom:14px; border-color: rgba(251, 191, 36, 0.45);">
+        <div class="countdown-row" style="margin-bottom:8px;">
+          <div>
+            <div class="section-label">Archived V1 Pilot (25 + 25 USDT) &mdash; Preserved Read-Only</div>
+            <div style="font-size:12px; color:var(--text-1);" id="v1-archive-subtitle">
+              Clearly separated from V2 100-market experiment.
+            </div>
+          </div>
+          <span class="pill pill-amber" id="v1-archive-status-pill">ARCHIVED</span>
+        </div>
+        <div class="kv-list" id="kv-v1-archive"></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="section-label">V1 Preserved Open Positions (At Cutover)</div>
+          <div id="v1-open-container"></div>
+        </div>
+        <div class="card">
+          <div class="section-label">V1 Preserved Closed Trades</div>
+          <div id="v1-closed-container"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Optional Auth Modal -->
+  <div class="modal-backdrop" id="auth-modal">
+    <div class="modal">
+      <div class="section-label">Token Authentication Required</div>
+      <div style="font-size:13px; color:var(--text-0); margin-top:4px;">
+        Enter the dashboard access token to unlock read-only telemetry.
+      </div>
+      <input type="password" id="token-input" placeholder="Paste DASHBOARD_AUTH_TOKEN..." autocomplete="off" />
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button type="button" id="btn-save-token">Unlock Dashboard</button>
+      </div>
+      <div id="token-error" style="font-family:var(--mono); font-size:11px; color:var(--rose); margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const NA = "not yet available";
+      let latestSnap = null;
+      let pollTimer = null;
+      let authToken = sessionStorage.getItem("nsl_dashboard_token") || "";
+
+      const $ = (id) => document.getElementById(id);
+
+      function esc(v) {
+        if (v === null || v === undefined) return "";
+        return String(v)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function fmtNum(v, digits = 4, suffix = "") {
+        if (v === null || v === undefined || Number.isNaN(Number(v))) return NA;
+        return Number(v).toFixed(digits) + suffix;
+      }
+
+      function fmtSigned(v, digits = 4, suffix = "") {
+        if (v === null || v === undefined || Number.isNaN(Number(v))) return NA;
+        const n = Number(v);
+        return (n >= 0 ? "+" : "") + n.toFixed(digits) + suffix;
+      }
+
+      function fmtDuration(sec) {
+        if (sec === null || sec === undefined || sec < 0) return NA;
+        const s = Math.floor(sec);
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const r = s % 60;
+        const pad = (n) => String(n).padStart(2, "0");
+        return `${pad(h)}:${pad(m)}:${pad(r)}`;
+      }
+
+      function fmtUtcShort(iso) {
+        if (!iso) return NA;
+        return iso.replace("T", " ").replace("+00:00", " UTC");
+      }
+
+      async function apiFetch(url) {
+        const headers = {};
+        if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
+        const res = await fetch(url, { headers, cache: "no-store" });
+        if (res.status === 401) {
+          $("auth-modal").classList.add("open");
+          throw new Error("unauthorized");
+        }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      }
+
+      function renderKV(containerId, items) {
+        const el = $(containerId);
+        el.innerHTML = items.map(([k, v, cls]) => `
+          <div class="kv-item">
+            <div class="kv-k">${esc(k)}</div>
+            <div class="kv-v ${cls || ""}">${esc(v)}</div>
+          </div>
+        `).join("");
+      }
+
+      function renderTable(headers, rows) {
+        if (!rows.length) return `<div class="empty-state">${NA}</div>`;
+        return `
+          <div class="table-wrap">
+            <table>
+              <thead><tr>${headers.map((h) => `<th>${esc(h)}</th>`).join("")}</tr></thead>
+              <tbody>${rows.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function renderChart(points) {
+        const wrap = $("equity-chart-wrap");
+        if (!points || points.length < 2) {
+          $("chart-caption").textContent = "Need at least 2 recorded HEARTBEAT points to plot equity curve.";
+          wrap.innerHTML = `<div class="empty-state">Equity curve not yet available (${points ? points.length : 0} heartbeat recorded).</div>`;
+          return;
+        }
+        $("chart-caption").textContent = `Showing ${points.length} recorded HEARTBEAT checkpoints`;
+        const W = 860, H = 220, padL = 52, padR = 16, padT = 16, padB = 26;
+        const innerW = W - padL - padR;
+        const innerH = H - padT - padB;
+
+        const spotVals = points.map((p) => p.spot_equity).filter((v) => v !== null);
+        const futVals = points.map((p) => p.futures_equity).filter((v) => v !== null);
+        const totVals = points.map((p) => p.total_equity).filter((v) => v !== null);
+        const allVals = [...spotVals, ...futVals, ...totVals];
+        let minV = Math.min(...allVals);
+        let maxV = Math.max(...allVals);
+        if (maxV - minV < 0.05) { minV -= 0.05; maxV += 0.05; }
+        const margin = (maxV - minV) * 0.1;
+        minV -= margin;
+        maxV += margin;
+
+        const xAt = (i) => padL + (i / (points.length - 1)) * innerW;
+        const yAt = (v) => padT + ((maxV - v) / (maxV - minV)) * innerH;
+
+        const buildPath = (key) => {
+          return points
+            .map((p, i) => (p[key] !== null ? `${i === 0 ? "M" : "L"}${xAt(i).toFixed(1)},${yAt(p[key]).toFixed(1)}` : ""))
+            .filter(Boolean)
+            .join(" ");
+        };
+
+        const yTicks = [0, 0.5, 1].map((t) => {
+          const val = maxV - t * (maxV - minV);
+          const y = padT + t * innerH;
+          return `
+            <line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="rgba(148,163,184,0.14)" stroke-dasharray="3,4"/>
+            <text x="${padL - 6}" y="${(y + 4).toFixed(1)}" fill="#94a3b8" font-size="10" font-family="monospace" text-anchor="end">${val.toFixed(2)}</text>
+          `;
+        }).join("");
+
+        const firstIso = fmtUtcShort(points[0].ts_iso).slice(11, 19);
+        const lastIso = fmtUtcShort(points[points.length - 1].ts_iso).slice(11, 19);
+
+        wrap.innerHTML = `
+          <svg class="chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Equity Curve">
+            ${yTicks}
+            <path d="${buildPath("total_equity")}" fill="none" stroke="#a3e635" stroke-width="2.4" stroke-linejoin="round"/>
+            <path d="${buildPath("spot_equity")}" fill="none" stroke="#22d3ee" stroke-width="2.0" stroke-linejoin="round"/>
+            <path d="${buildPath("futures_equity")}" fill="none" stroke="#a855f7" stroke-width="2.0" stroke-linejoin="round"/>
+            <text x="${padL}" y="${H - 6}" fill="#64748b" font-size="10" font-family="monospace">${esc(firstIso)} UTC</text>
+            <text x="${W - padR}" y="${H - 6}" fill="#64748b" font-size="10" font-family="monospace" text-anchor="end">${esc(lastIso)} UTC</text>
+          </svg>
+        `;
+      }
+
+      function updateClocks() {
+        if (!latestSnap) return;
+        const nowSec = Math.floor(Date.now() / 1000);
+        const exp = latestSnap.experiment || {};
+        if (exp.scheduled_end_ts) {
+          const rem = Math.max(0, exp.scheduled_end_ts - nowSec);
+          $("countdown-clock").textContent = fmtDuration(rem);
+          if (exp.start_ts && exp.duration_sec > 0) {
+            const pct = Math.min(100, Math.max(0, ((nowSec - exp.start_ts) / exp.duration_sec) * 100));
+            $("progress-pct").textContent = `${pct.toFixed(2)}%`;
+            $("progress-fill").style.width = `${pct.toFixed(2)}%`;
+          }
+        }
+
+        const hb = latestSnap.heartbeat || {};
+        if (hb.last_ts !== null && hb.last_ts !== undefined) {
+          const age = Math.max(0, nowSec - hb.last_ts);
+          $("pill-hb-age").textContent = `HB: ${age}s AGO`;
+          const banner = $("alert-banner");
+          const procAlive = latestSnap.process && latestSnap.process.alive;
+          if (!procAlive) {
+            banner.className = "alert-banner visible";
+            $("alert-text").textContent = `OFFLINE ALERT: Runner PID ${latestSnap.process?.pid ?? "--"} is not running!`;
+            $("alert-meta").textContent = `Last HB ${age}s ago`;
+          } else if (age > 300) {
+            banner.className = "alert-banner visible";
+            $("alert-text").textContent = `CRITICAL STALE HEARTBEAT: Last heartbeat was ${age}s ago (> 300s)!`;
+            $("alert-meta").textContent = `PID ${latestSnap.process.pid}`;
+          } else if (age > 120) {
+            banner.className = "alert-banner visible stale";
+            $("alert-text").textContent = `STALE WARNING: Heartbeat age is ${age}s (> 120s).`;
+            $("alert-meta").textContent = `PID ${latestSnap.process.pid}`;
+          } else {
+            banner.className = "alert-banner";
+          }
+        }
+      }
+
+      function renderSnapshot(d) {
+        latestSnap = d;
+        const isV2 = d.experiment_version === "v2";
+        const nm = d.neural_model || {};
+        $("pill-version").textContent = isV2 ? "V2 • 100-MKT • 50U" : "V1 • 25U+25U";
+        $("subtitle-line").textContent = isV2
+          ? "V2 Standalone 100-Market Paper Lab • 50 USDT / Trade • 5000 USDT Cap • Read-Only"
+          : "Standalone Isolated Paper Lab • Read-Only Telemetry";
+        $("pill-neural").innerHTML = `<span class="pill-dot"></span>NEURAL: ${esc(nm.status || "UNTRAINED")}`;
+        $("neural-big").textContent = `NEURAL STATUS: ${nm.status || "UNTRAINED"}`;
+        $("neural-detail").textContent = nm.detail || "Deterministic rule-based baseline active.";
+
+        const healthPill = $("pill-health");
+        const hbStatus = d.heartbeat?.status || "UNKNOWN";
+        healthPill.className = "pill " + (
+          hbStatus === "HEALTHY" ? "pill-lime" : (hbStatus === "STALE" ? "pill-amber" : "pill-rose")
+        );
+        healthPill.innerHTML = `<span class="pill-dot pulse"></span>${esc(d.process?.state || "UNKNOWN")} &bull; ${esc(hbStatus)}`;
+
+        $("meta-start").textContent = fmtUtcShort(d.experiment?.start_utc);
+        $("meta-end").textContent = fmtUtcShort(d.experiment?.scheduled_end_utc);
+        $("meta-refresh").textContent = fmtUtcShort(d.generated_at_utc);
+        $("meta-pid").textContent = d.process?.pid ? `${d.process.pid} (${d.process.state})` : NA;
+        $("meta-events").textContent = String(d.db?.total_events ?? 0);
+        $("meta-blockers").textContent = d.experiment?.blockers || "None";
+
+        const spot = d.ledgers?.SPOT || {};
+        const fut = d.ledgers?.FUTURES || {};
+        const comb = d.ledgers?.COMBINED || {};
+        const spotBase = spot.starting_capital ?? 25;
+        const futBase = fut.starting_capital ?? 25;
+        const combBase = comb.starting_capital ?? (spotBase + futBase);
+
+        $("lbl-spot-eq").textContent = `SPOT Equity (${spotBase} USDT)`;
+        $("lbl-fut-eq").textContent = `FUTURES Equity (${futBase} USDT)`;
+        $("lbl-spot-card").textContent = `SPOT Ledger // Independent ${Number(spotBase).toFixed(2)} USDT (Long-Only)`;
+        $("lbl-fut-card").textContent = `FUTURES Ledger // Independent ${Number(futBase).toFixed(2)} USDT (Isolated <=2x)`;
+
+        $("kpi-total-eq").textContent = comb.latest_equity !== null ? `${fmtNum(comb.latest_equity)} USDT` : NA;
+        $("kpi-total-delta").textContent = comb.equity_delta !== null
+          ? `Delta: ${fmtSigned(comb.equity_delta)} USDT (${fmtSigned(comb.equity_delta_pct, 2, "%")})`
+          : `Start: ${Number(combBase).toFixed(4)} USDT`;
+        $("kpi-total-delta").className = "kpi-sub " + ((comb.equity_delta || 0) >= 0 ? "c-lime" : "c-rose");
+
+        $("kpi-spot-eq").textContent = spot.latest_equity !== null ? `${fmtNum(spot.latest_equity)} USDT` : NA;
+        $("kpi-spot-delta").textContent = spot.equity_delta !== null
+          ? `Delta: ${fmtSigned(spot.equity_delta)} (${fmtSigned(spot.equity_delta_pct, 2, "%")})`
+          : "Long-only baseline";
+
+        $("kpi-fut-eq").textContent = fut.latest_equity !== null ? `${fmtNum(fut.latest_equity)} USDT` : NA;
+        $("kpi-fut-delta").textContent = fut.equity_delta !== null
+          ? `Delta: ${fmtSigned(fut.equity_delta)} (${fmtSigned(fut.equity_delta_pct, 2, "%")})`
+          : "Isolated <=2x baseline";
+
+        $("kpi-pos-counts").textContent = `${comb.open_count ?? 0} / ${comb.closed_count ?? 0}`;
+        $("kpi-pos-split").textContent = `SPOT ${spot.open_count ?? 0}/${spot.closed_count ?? 0} • FUT ${fut.open_count ?? 0}/${fut.closed_count ?? 0}`;
+
+        if (isV2 && d.v2) {
+          const v2 = d.v2;
+          $("card-v2-exposure").style.display = "";
+          $("v2-progress-card").style.display = "";
+          $("v2-attribution-grid").style.display = "";
+          $("kpi-v2-exp").textContent = `${fmtNum(v2.global_notional_exposure, 2)} / ${fmtNum(v2.global_max_notional_usdt, 0)} USDT`;
+          $("kpi-v2-slots").textContent = `Slots: ${v2.open_slots_used} / ${v2.max_concurrent_positions} (${fmtNum(v2.global_exposure_pct, 1, "%")})`;
+          $("v2-cycle-pill").textContent = `Cycle ${v2.cycle_count ?? 0}`;
+          $("v2-exp-bar").style.width = `${Math.min(100, Math.max(0, v2.global_exposure_pct || 0))}%`;
+          const lc = v2.latest_cycle || {};
+          $("v2-capacity-meta").innerHTML = [
+            `<span>Universe: <strong>${d.universe?.total_count ?? "--"}/100</strong></span>`,
+            `<span>Signals Last Cycle: <strong>${lc.signals_triggered ?? 0}</strong></span>`,
+            `<span>Opened Last Cycle: <strong>${lc.opened_this_cycle ?? 0}</strong></span>`,
+            `<span>HOLD Last Cycle: <strong>${lc.hold_this_cycle ?? 0}</strong></span>`,
+            `<span>Target / Trade: <strong>${v2.target_notional_usdt} USDT</strong></span>`,
+          ].join("");
+
+          const attrRows = (obj) => Object.entries(obj || {}).map(([k, v]) => [
+            `<strong>${esc(k)}</strong>`,
+            esc(v.open_count),
+            esc(v.closed_count),
+            `<span class="${(v.unrealized_pnl || 0) >= 0 ? "c-lime" : "c-rose"}">${fmtSigned(v.unrealized_pnl, 4)}</span>`,
+            `<span class="${(v.realized_net_pnl || 0) >= 0 ? "c-lime" : "c-rose"}">${fmtSigned(v.realized_net_pnl, 4)}</span>`,
+            fmtNum(v.fees, 4),
+          ]);
+          $("v2-cat-attrib-container").innerHTML = renderTable(
+            ["Category", "Open", "Closed", "Unrealized", "Realized", "Fees"],
+            attrRows(v2.attribution?.by_category)
+          );
+          $("v2-strat-attrib-container").innerHTML = renderTable(
+            ["Strategy", "Open", "Closed", "Unrealized", "Realized", "Fees"],
+            attrRows(v2.attribution?.by_strategy)
+          );
+        } else {
+          $("card-v2-exposure").style.display = "none";
+          $("v2-progress-card").style.display = "none";
+          $("v2-attribution-grid").style.display = "none";
+        }
+
+        if (comb.closed_count > 0) {
+          $("kpi-winloss").textContent = `${comb.wins}W / ${comb.losses}L`;
+          $("kpi-winrate").textContent = `Win rate: ${fmtNum(comb.win_rate_pct, 1, "%")}`;
+          $("kpi-pf").textContent = comb.profit_factor_display || NA;
+          $("kpi-fees").textContent = comb.recorded_exit_fees !== null ? `${fmtNum(comb.recorded_exit_fees, 5)} USDT` : NA;
+        } else {
+          $("kpi-winloss").textContent = NA;
+          $("kpi-winloss").className = "kpi-value c-muted";
+          $("kpi-winrate").textContent = "0 closed trades recorded";
+          $("kpi-pf").textContent = NA;
+          $("kpi-pf").className = "kpi-value c-muted";
+          $("kpi-fees").textContent = NA;
+          $("kpi-fees").className = "kpi-value c-muted";
+        }
+
+        if (comb.max_drawdown_pct !== null && comb.max_drawdown_pct !== undefined) {
+          $("kpi-dd").textContent = `${fmtNum(comb.max_drawdown_pct, 3, "%")}`;
+          $("kpi-dd").className = "kpi-value " + (comb.max_drawdown_pct > 2 ? "c-rose" : "c-cyan");
+          $("kpi-dd-cur").textContent = `Current DD: ${fmtNum(comb.current_drawdown_pct, 3, "%")}`;
+        } else {
+          $("kpi-dd").textContent = NA;
+          $("kpi-dd").className = "kpi-value c-muted";
+        }
+
+        $("chart-points-pill").textContent = `${(d.equity_curve || []).length} pts`;
+        renderChart(d.equity_curve || []);
+
+        const ledgerRows = (m) => {
+          const rows = [
+            ["Latest Equity", m.latest_equity !== null ? `${fmtNum(m.latest_equity)} USDT` : NA],
+            ["Equity Delta", m.equity_delta !== null ? `${fmtSigned(m.equity_delta)} USDT` : NA],
+            ["Open / Closed", `${m.open_count} / ${m.closed_count}`],
+          ];
+          if (m.cash_usdt !== undefined && m.cash_usdt !== null) {
+            rows.push(["Available Cash", `${fmtNum(m.cash_usdt, 4)} USDT`]);
+          }
+          if (m.exposure_usdt !== undefined && m.exposure_usdt !== null) {
+            rows.push(["Gross Exposure", `${fmtNum(m.exposure_usdt, 2)} USDT`]);
+          }
+          if (m.total_fees !== undefined && m.total_fees !== null) {
+            rows.push(["Total Fees", `${fmtNum(m.total_fees, 5)} USDT`]);
+          }
+          if (m.total_funding !== undefined && m.total_funding !== null) {
+            rows.push(["Total Funding", `${fmtNum(m.total_funding, 5)} USDT`]);
+          }
+          rows.push(
+            ["Realized PnL", m.realized_pnl !== null ? `${fmtSigned(m.realized_pnl)} USDT` : NA],
+            ["Win / Loss", m.closed_count > 0 ? `${m.wins}W / ${m.losses}L (${fmtNum(m.win_rate_pct, 1, "%")})` : NA],
+            ["Profit Factor", m.profit_factor_display || NA],
+            ["Observed Max DD", m.max_drawdown_pct !== null ? `${fmtNum(m.max_drawdown_pct, 3, "%")}` : NA],
+          );
+          return rows;
+        };
+        renderKV("kv-spot", ledgerRows(spot));
+        renderKV("kv-futures", ledgerRows(fut));
+
+        // Open positions
+        const openPos = d.positions?.open || [];
+        $("open-count-pill").textContent = `${openPos.length} OPEN`;
+        const nowSec = Math.floor(Date.now() / 1000);
+        $("open-positions-container").innerHTML = renderTable(
+          ["Ledger", "Symbol", "Side", "Qty", "Notional", "Entry", "Mark", "uPnL", "SL / TP", "Lev", "Margin", "Strategy", "Bucket", "Route", "Age"],
+          openPos.map((p) => [
+            `<span class="pill ${p.ledger === "SPOT" ? "pill-cyan" : "pill-violet"}">${esc(p.ledger)}</span>`,
+            `<strong>${esc(p.symbol)}</strong>`,
+            `<span class="${p.side === "LONG" ? "c-lime" : "c-rose"}">${esc(p.side)}</span>`,
+            esc(p.qty),
+            p.actual_notional ? fmtNum(p.actual_notional, 2, "U") : fmtNum((p.qty || 0) * (p.entry_price || 0), 2, "U"),
+            fmtNum(p.entry_price, 5),
+            p.mark_price ? fmtNum(p.mark_price, 5) : "-",
+            p.unrealized_pnl !== undefined ? `<span class="${(p.unrealized_pnl || 0) >= 0 ? "c-lime" : "c-rose"}">${fmtSigned(p.unrealized_pnl, 4)}</span>` : "-",
+            `${fmtNum(p.stop_loss, 4)} / ${fmtNum(p.take_profit, 4)}`,
+            `${p.leverage ?? 1}x`,
+            fmtNum(p.margin_used, 2),
+            esc(p.strategy || NA),
+            esc(p.selection_bucket || p.category || NA),
+            esc(p.route_reason || "-"),
+            fmtDuration(nowSec - (p.opened_at_utc || nowSec)),
+          ])
+        );
+
+        // Closed trades
+        const closedPos = d.positions?.closed || [];
+        $("closed-count-pill").textContent = `${closedPos.length} CLOSED`;
+        $("closed-trades-container").innerHTML = renderTable(
+          ["Ledger", "Symbol", "Side", "Qty", "Entry", "Exit", "Net PnL", "Fees", "Funding", "Reason", "Strategy", "Closed UTC"],
+          closedPos.map((t) => [
+            esc(t.ledger),
+            `<strong>${esc(t.symbol)}</strong>`,
+            `<span class="${t.side === "LONG" ? "c-lime" : "c-rose"}">${esc(t.side)}</span>`,
+            esc(t.qty),
+            fmtNum(t.entry_price, 5),
+            fmtNum(t.exit_price, 5),
+            `<span class="${(t.net_pnl || 0) >= 0 ? "c-lime" : "c-rose"}">${fmtSigned(t.net_pnl, 5)}</span>`,
+            fmtNum(t.fee, 5),
+            t.funding_paid !== undefined ? fmtNum(t.funding_paid, 5) : "0",
+            esc(t.reason || NA),
+            esc(t.strategy || NA),
+            esc(fmtUtcShort(t.closed_at_iso)),
+          ])
+        );
+
+        // Universe & decisions
+        const univ = d.universe || {};
+        renderKV("kv-universe", [
+          ["Total Distinct Symbols", univ.total_count !== null && univ.total_count !== undefined ? `${univ.total_count} symbols` : NA],
+          ["SPOT Eligible Count", univ.spot_count !== null && univ.spot_count !== undefined ? `${univ.spot_count} symbols` : NA],
+          ["FUTURES Eligible Count", univ.futures_count !== null && univ.futures_count !== undefined ? `${univ.futures_count} symbols` : NA],
+          ["Full List Persisted", univ.full_list_persisted ? "Yes" : "No (counts only)"],
+        ]);
+        $("universe-note").textContent = univ.persisted_note || "";
+
+        if (isV2 && Array.isArray(univ.symbols) && univ.symbols.length) {
+          $("v2-universe-table-card").style.display = "";
+          $("v2-univ-count-pill").textContent = `${univ.symbols.length} symbols`;
+          $("v2-universe-table-container").innerHTML = renderTable(
+            ["Symbol", "Bucket", "Category", "New?", "Spot", "Futures", "24h Vol (M)", "24h Chg %", "Funding"],
+            univ.symbols.map((s) => [
+              `<strong>${esc(s.symbol)}</strong>`,
+              `<span class="pill pill-violet">${esc(s.selection_bucket)}</span>`,
+              esc(s.category),
+              s.is_verified_new_listing ? `<span class="c-lime">YES</span>` : "-",
+              s.spot_eligible ? fmtNum(s.spot_price, 4) : "-",
+              s.futures_eligible ? fmtNum(s.futures_mark_price, 4) : "-",
+              fmtNum((s.best_volume_24h_usdt || 0) / 1e6, 2),
+              `<span class="${(s.price_change_pct || 0) >= 0 ? "c-lime" : "c-rose"}">${fmtSigned(s.price_change_pct, 2, "%")}</span>`,
+              s.futures_funding_rate !== null && s.futures_funding_rate !== undefined ? fmtNum(s.futures_funding_rate * 100, 4, "%") : "-",
+            ])
+          );
+        } else {
+          $("v2-universe-table-card").style.display = "none";
+        }
+
+        const cats = univ.observed_categories || {};
+        const catEntries = Object.entries(cats);
+        if (!catEntries.length) {
+          $("category-bars").innerHTML = `<div class="empty-state">${NA} (no symbol events persisted yet)</div>`;
+        } else {
+          const maxC = Math.max(...catEntries.map(([, c]) => c), 1);
+          $("category-bars").innerHTML = catEntries.map(([cat, count]) => `
+            <div class="bar-row">
+              <span class="bar-label">${esc(cat)}</span>
+              <div class="bar-track"><div class="bar-fill" style="width:${(count / maxC * 100).toFixed(1)}%"></div></div>
+              <span>${count}</span>
+            </div>
+          `).join("");
+        }
+
+        $("observed-symbols-container").innerHTML = renderTable(
+          ["Ledger", "Symbol", "Category", "Events", "Last Event", "Last UTC"],
+          (univ.observed_symbols || []).map((s) => [
+            esc(s.ledger),
+            `<strong>${esc(s.symbol)}</strong>`,
+            esc(s.category),
+            esc(s.events),
+            esc(s.last_event_type),
+            esc(fmtUtcShort(new Date(s.last_ts_utc * 1000).toISOString())),
+          ])
+        );
+
+        const rejs = d.decisions?.rejections || [];
+        $("rej-count-pill").textContent = String(d.decisions?.rejection_count ?? 0);
+        $("rejections-container").innerHTML = renderTable(
+          ["Ledger", "Symbol", "Reason", "Strategy", "UTC"],
+          rejs.map((r) => [esc(r.ledger), `<strong>${esc(r.symbol)}</strong>`, esc(r.reason), esc(r.strategy), esc(fmtUtcShort(r.ts_iso))])
+        );
+
+        const stales = d.decisions?.stale_skips || [];
+        $("stale-count-pill").textContent = String(d.decisions?.stale_skip_count ?? 0);
+        $("stale-container").innerHTML = renderTable(
+          ["Ledger", "Symbol", "Snapshot TS", "Logged UTC"],
+          stales.map((s) => [esc(s.ledger), `<strong>${esc(s.symbol)}</strong>`, esc(s.snapshot_ts ?? NA), esc(fmtUtcShort(s.ts_iso))])
+        );
+
+        // Logs & AGY
+        const labLog = d.logs?.lab_log || {};
+        const agy = d.logs?.agy_activity || {};
+        renderKV("kv-process", [
+          ["Runner PID", d.process?.pid ? String(d.process.pid) : NA],
+          ["Process State", d.process?.state || "UNKNOWN", d.process?.alive ? "c-lime" : "c-rose"],
+          ["Heartbeat Status", d.heartbeat?.status || "UNKNOWN"],
+          ["DB Readable", d.db?.readable ? "Yes (read-only)" : `Error: ${d.db?.error}`],
+          ["Log Errors", String(labLog.errors ?? 0), (labLog.errors || 0) > 0 ? "c-rose" : "c-lime"],
+          ["Log Warnings", String(labLog.warnings ?? 0), (labLog.warnings || 0) > 0 ? "c-amber" : ""],
+        ]);
+
+        $("log-errors-box").textContent = (labLog.recent_error_lines && labLog.recent_error_lines.length)
+          ? labLog.recent_error_lines.join("\n")
+          : "No ERROR or WARNING entries in runner log.";
+
+        $("status-md-box").textContent = (d.status_md?.raw_lines && d.status_md.raw_lines.length)
+          ? d.status_md.raw_lines.join("\n")
+          : NA;
+
+        $("lab-log-meta").textContent = `${labLog.total_lines ?? 0} lines • ${labLog.size_bytes ?? 0} B`;
+        $("lab-log-box").textContent = (labLog.lines && labLog.lines.length) ? labLog.lines.join("\n") : NA;
+
+        $("agy-note").textContent = agy.note || "";
+        const agyLines = agy.tail?.lines || [];
+        $("agy-log-box").textContent = agyLines.length ? agyLines.join("\n") : `${NA} (${agy.tail?.size_bytes ?? 0} bytes)`;
+
+        // Archived V1 section
+        const v1 = d.v1_archive;
+        if (v1 && v1.present) {
+          $("tab-btn-v1archive").style.display = "";
+          $("v1-archive-status-pill").textContent = v1.status_label || "ARCHIVED";
+          $("v1-archive-subtitle").textContent = v1.retired_at_utc
+            ? `Retired at ${fmtUtcShort(v1.retired_at_utc)} (${v1.retirement_reason || "V2 cutover"}) • Preserved read-only`
+            : "Preserved V1 25+25 USDT pilot history (read-only).";
+          const v1s = v1.ledgers?.SPOT || {};
+          const v1f = v1.ledgers?.FUTURES || {};
+          const v1c = v1.ledgers?.COMBINED || {};
+          renderKV("kv-v1-archive", [
+            ["V1 Status", v1.status_label || "ARCHIVED"],
+            ["V1 PID", v1.process?.pid ? `${v1.process.pid} (${v1.process.state})` : NA],
+            ["V1 Start UTC", fmtUtcShort(v1.experiment?.start_utc)],
+            ["V1 Last Heartbeat", fmtUtcShort(v1.heartbeat?.last_utc)],
+            ["V1 SPOT Equity", v1s.latest_equity !== null ? `${fmtNum(v1s.latest_equity)} USDT` : NA],
+            ["V1 FUTURES Equity", v1f.latest_equity !== null ? `${fmtNum(v1f.latest_equity)} USDT` : NA],
+            ["V1 Combined Equity", v1c.latest_equity !== null ? `${fmtNum(v1c.latest_equity)} USDT` : NA],
+            ["V1 Recorded Events", String(v1.total_events ?? 0)],
+          ]);
+          $("v1-open-container").innerHTML = renderTable(
+            ["Ledger", "Symbol", "Side", "Qty", "Entry", "Strategy"],
+            (v1.positions?.open || []).map((p) => [
+              esc(p.ledger), `<strong>${esc(p.symbol)}</strong>`, esc(p.side), esc(p.qty), fmtNum(p.entry_price, 4), esc(p.strategy || NA)
+            ])
+          );
+          $("v1-closed-container").innerHTML = renderTable(
+            ["Ledger", "Symbol", "Side", "Net PnL", "Reason"],
+            (v1.positions?.closed || []).map((t) => [
+              esc(t.ledger), `<strong>${esc(t.symbol)}</strong>`, esc(t.side), fmtSigned(t.net_pnl, 4), esc(t.reason || NA)
+            ])
+          );
+        } else {
+          $("tab-btn-v1archive").style.display = "none";
+        }
+
+        // Security
+        const sec = d.security || {};
+        renderKV("kv-security", [
+          ["Bind Host", sec.host || "127.0.0.1"],
+          ["Port", String(sec.port || 8765)],
+          ["Localhost Only", sec.localhost_only ? "Yes (Safe)" : "No (Remote Bind)"],
+          ["Token Auth", sec.token_auth_enabled ? "Enabled (Bearer)" : "Disabled (Localhost-only)"],
+          ["SQLite Access", "URI ?mode=ro (Read-Only)"],
+          ["Trading Mode", "PAPER ONLY (No Live Keys)"],
+        ]);
+        $("ssh-forward-cmd").textContent = `ssh -N -L ${sec.port || 8765}:127.0.0.1:${sec.port || 8765} root@<YOUR_SERVER_IP>`;
+
+        updateClocks();
+      }
+
+      async function loadJournalEvents() {
+        const et = $("filter-event-type").value;
+        const lg = $("filter-ledger").value;
+        try {
+          const data = await apiFetch(`/api/events?type=${encodeURIComponent(et)}&ledger=${encodeURIComponent(lg)}&limit=80`);
+          $("journal-events-container").innerHTML = renderTable(
+            ["UTC", "Type", "Ledger", "Symbol", "Event ID", "Payload"],
+            (data.events || []).map((e) => [
+              esc(fmtUtcShort(e.ts_iso)),
+              `<span class="pill pill-cyan">${esc(e.event_type)}</span>`,
+              esc(e.ledger),
+              `<strong>${esc(e.symbol)}</strong>`,
+              esc(e.event_id),
+              `<span style="white-space:normal;max-width:420px;display:inline-block;word-break:break-all;">${esc(JSON.stringify(e.payload))}</span>`,
+            ])
+          );
+        } catch (err) {
+          if (err.message !== "unauthorized") {
+            $("journal-events-container").innerHTML = `<div class="empty-state">Error loading events: ${esc(err.message)}</div>`;
+          }
+        }
+      }
+
+      async function refreshAll() {
+        try {
+          const snap = await apiFetch("/api/dashboard");
+          renderSnapshot(snap);
+          await loadJournalEvents();
+        } catch (err) {
+          if (err.message !== "unauthorized") {
+            const banner = $("alert-banner");
+            banner.className = "alert-banner visible";
+            $("alert-text").textContent = `Dashboard API error: ${err.message}`;
+          }
+        }
+      }
+
+      function setupPolling() {
+        if (pollTimer) clearInterval(pollTimer);
+        const ms = Number($("poll-interval").value);
+        if (ms > 0) {
+          pollTimer = setInterval(refreshAll, ms);
+        }
+      }
+
+      document.querySelectorAll(".tab-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+          document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
+          btn.classList.add("active");
+          $("tab-" + btn.dataset.tab).classList.add("active");
+        });
+      });
+
+      $("btn-refresh").addEventListener("click", refreshAll);
+      $("poll-interval").addEventListener("change", setupPolling);
+      $("filter-event-type").addEventListener("change", loadJournalEvents);
+      $("filter-ledger").addEventListener("change", loadJournalEvents);
+
+      $("btn-save-token").addEventListener("click", async () => {
+        const val = $("token-input").value.trim();
+        if (!val) {
+          $("token-error").textContent = "Please enter a token.";
+          return;
+        }
+        authToken = val;
+        sessionStorage.setItem("nsl_dashboard_token", val);
+        $("token-error").textContent = "";
+        try {
+          await refreshAll();
+          $("auth-modal").classList.remove("open");
+        } catch (_e) {
+          $("token-error").textContent = "Invalid token.";
+        }
+      });
+
+      setInterval(updateClocks, 1000);
+      setupPolling();
+      refreshAll();
+    })();
+  </script>
+</body>
+</html>
